@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    container_name: aqi-api
+    ports:
+      - "5000:5000"
+    volumes:
+      - ../src:/app/src
+      - ../models:/app/models
+      - ../data:/app/data
+    environment:
+      - FLASK_ENV=production
+    command: python src/api/app.py
+    networks:
+      - aqi-network
+    restart: unless-stopped
+
+  web:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile
+    container_name: aqi-web
+    ports:
+      - "8501:8501"
+    volumes:
+      - ../src:/app/src
+      - ../models:/app/models
+      - ../data:/app/data
+    command: streamlit run src/web/streamlit_app.py --server.port=8501 --server.address=0.0.0.0
+    networks:
+      - aqi-network
+    restart: unless-stopped
+    depends_on:
+      - api
+
+  redis:
+    image: redis:7-alpine
+    container_name: aqi-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - aqi-network
+    restart: unless-stopped
+
+networks:
+  aqi-network:
+    driver: bridge
